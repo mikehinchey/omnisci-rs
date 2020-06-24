@@ -13,6 +13,12 @@ deps:
 build:
 	cargo build
 
+up:
+	docker run --name omnisci-test-db -d --rm -p 6273-6274:6273-6274 omnisci/core-os-cpu:v5.3.0
+
+down:
+	docker stop omnisci-test-db
+
 test:
 	cargo test
 
@@ -24,4 +30,4 @@ release:
 
 all: test
 
-.PHONY: dev build test all install release
+.PHONY: dev build test all install release up down

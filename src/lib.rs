@@ -7,14 +7,13 @@ pub mod completion_hints;
 pub mod extension_functions;
 pub mod omnisci;
 pub mod serialized_result_set;
-// pub mod con;
 
 pub mod client {
   use crate::omnisci::OmniSciSyncClient;
   use crate::omnisci::TOmniSciSyncClient;
-  use crate::omnisci;
+  use regex;
 
-  use thrift::protocol::{TBinaryInputProtocol, TBinaryOutputProtocol, TInputProtocol, TOutputProtocol};
+  use thrift::protocol::{TBinaryInputProtocol, TBinaryOutputProtocol};
   use thrift::transport::{
     ReadHalf, TBufferedReadTransport, TBufferedWriteTransport, TIoChannel, TTcpChannel, WriteHalf,
   };
@@ -40,28 +39,11 @@ pub mod client {
   }
 
   pub trait OmniSciConnection {
-    fn run_query(&mut self, query: String) -> thrift::Result<crate::omnisci::TQueryResult>;
+    fn sql_execute(&mut self, query: String) -> thrift::Result<crate::omnisci::TQueryResult>;
   }
 
-  struct OmniSciBinaryConnection { // <Client> where Client: TOmniSciSyncClient {
-    session: String,
-    client: dyn TOmniSciSyncClient,
-  }
-
-  // impl OmniSciConnection for OmniSciBinaryConnection {
-  //   fn run_query(&mut self, query: &str) -> thrift::Result<crate::omnisci::TQueryResult> {
-  //     self.client.sql_execute(
-  //       self.session.to_string(),
-  //       query,
-  //       false,
-  //       "1".to_string(),
-  //       10000,
-  //       -1,
-  //     )?
-  //   }
-  // }
-
-  pub struct OmniSciSyncClient2 { //<IP, OP> where IP: TInputProtocol, OP: TOutputProtocol {
+  // TODO support other i/o protocols? <IP, OP> where IP: TInputProtocol, OP: TOutputProtocol
+  pub struct OmniSciBinarySyncClient {
     session: String,
     client: OmniSciSyncClient<
       TBinaryInputProtocol<TBufferedReadTransport<ReadHalf<TTcpChannel>>>,
@@ -69,8 +51,8 @@ pub mod client {
     >,
   }
   
-  impl OmniSciConnection for OmniSciSyncClient2 { // <IP, OP> {
-    fn run_query(&mut self, query: String) -> thrift::Result<crate::omnisci::TQueryResult> {
+  impl OmniSciConnection for OmniSciBinarySyncClient {
+    fn sql_execute(&mut self, query: String) -> thrift::Result<crate::omnisci::TQueryResult> {
       self.client.sql_execute(
         self.session.to_string(),
         query,
@@ -100,11 +82,28 @@ pub mod client {
     let o_prot = TBinaryOutputProtocol::new(TBufferedWriteTransport::new(o_chan), true);
 
     let mut client = OmniSciSyncClient::new(i_prot, o_prot);
-    // let mut client = create(remote_address)?;
     let session = client.connect(String::from(user), String::from(password), String::from(db_name))?;
-
-    // let client = Box::new(client);
-    // let res = OmniSciBinaryConnection{session, client};
-    Ok(Box::new(OmniSciSyncClient2{session, client}))
+    
+    Ok(Box::new(OmniSciBinarySyncClient{session, client}))
   }
+
+  // Example: "omnisci://admin:HyperInteractive@omnisciserver:6274/omnisci"
+  pub fn connect_url(url: &str) -> Result<Box<dyn OmniSciConnection>, thrift::Error>
+  {
+    // TODO allow optional values in url
+    let re = regex::Regex::new(r"omnisci://(?P<user>.*):(?P<password>.*)@(?P<host_port>.*)/(?P<database>.*)").unwrap();
+    // let re = regex::Regex::new(r"omnisci://(.*):(.*)@(.*)/(.*)").unwrap();
+    match re.captures(&url) {
+      None => panic!("Failed to parse OmniSciDB URL"),
+      Some(captures) => {
+        let user = captures.get(1).unwrap().as_str();
+        let password = captures.get(2).unwrap().as_str();
+        let host_port = captures.get(3).unwrap().as_str();
+        let database = captures.get(4).unwrap().as_str();
+        // print!("{} {} {} {}", user, password, host_port, database);
+        connect(host_port, user, password, database)
+      }
+    }
+  }
+
 }

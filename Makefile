@@ -9,20 +9,12 @@ deps:
 .PHONY: deps
 
 thrift:
-	./generate_thrift_bindings.sh ${OMNISCI_PATH}
+	./generate_thrift_bindings.sh
 .PHONY: thrift
 
 build:
 	cargo build
 .PHONY: build
-
-up:
-	docker run --name omnisci-test-db -d --rm -p 6273-6274:6273-6274 omnisci/core-os-cpu:v5.3.0
-.PHONY: up
-
-down:
-	docker stop omnisci-test-db
-.PHONY: down
 
 test:
 	cargo test
@@ -36,16 +28,27 @@ release:
 	cargo build --release
 .PHONY: release
 
+all: test
+.PHONY: all
+
 everything: thrift all release
 .PHONY: everything
 
+#
+# Docker
+#
+
+up:
+	docker run --name omnisci-test-db -d --rm -p 6273-6274:6273-6274 omnisci/core-os-cpu:v5.3.0
+.PHONY: up
+
+down:
+	docker stop omnisci-test-db
+.PHONY: down
+
 docker_builder:
-	# -q
 	docker build -f docker/Dockerfile -t build-omnisci-rs .
 .PHONY: docker_builder
 
 %.docker: docker_builder
 	docker run -i --rm -v ${PWD}:/src build-omnisci-rs make $*
-
-all: test
-.PHONY: all

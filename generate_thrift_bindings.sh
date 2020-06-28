@@ -4,7 +4,8 @@
 # This script is intentionally brittle, so that it will get attention if anything changes.
 
 THRIFT_BINARY=thrift
-OMNISCI_PATH=$1
+# OMNISCI_PATH=$1
+OMNISCI_PATH=target
 
 # Check for a non-empty input folder
 if [ -z "$OMNISCI_PATH" ]; then
@@ -19,10 +20,20 @@ if ! $THRIFT_BINARY --version | grep -q 'Thrift version 0.13.0'; then
 fi
 
 # Check that the Thrift definitions exist in that folder
-if [ ! -f "$OMNISCI_PATH/omnisci.thrift" ]; then
-  echo "$OMNISCI_PATH not found"
-  exit 1
-fi
+# if [ ! -f "$OMNISCI_PATH/omnisci.thrift" ]; then
+#   echo "$OMNISCI_PATH not found"
+#   exit 1
+# fi
+
+mkdir -p "$OMNISCI_PATH/QueryEngine"
+for f in omnisci.thrift "common.thrift" "completion_hints.thrift" "QueryEngine/serialized_result_set.thrift" "QueryEngine/extension_functions.thrift"
+do
+  if [ -f "$OMNISCI_PATH/$f" ]
+  then
+    curl "https://raw.githubusercontent.com/omnisci/omniscidb/rc/v5.3.0/$f" -o "$OMNISCI_PATH/$f"
+  fi
+done
+
 
 # Generate the bindings into our src folder
 if ! $THRIFT_BINARY -gen rs -recurse -out src "$OMNISCI_PATH/omnisci.thrift"; then

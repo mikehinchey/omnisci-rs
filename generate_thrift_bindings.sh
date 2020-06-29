@@ -4,8 +4,7 @@
 # This script is intentionally brittle, so that it will get attention if anything changes.
 
 THRIFT_BINARY=thrift
-# OMNISCI_PATH=$1
-OMNISCI_PATH=target
+OMNISCI_PATH=$1
 
 # Check for a non-empty input folder
 if [ -z "$OMNISCI_PATH" ]; then
@@ -20,20 +19,10 @@ if ! $THRIFT_BINARY --version | grep -q 'Thrift version 0.13.0'; then
 fi
 
 # Check that the Thrift definitions exist in that folder
-# if [ ! -f "$OMNISCI_PATH/omnisci.thrift" ]; then
-#   echo "$OMNISCI_PATH not found"
-#   exit 1
-# fi
-
-mkdir -p "$OMNISCI_PATH/QueryEngine"
-for f in omnisci.thrift "common.thrift" "completion_hints.thrift" "QueryEngine/serialized_result_set.thrift" "QueryEngine/extension_functions.thrift"
-do
-  if [ -f "$OMNISCI_PATH/$f" ]
-  then
-    curl "https://raw.githubusercontent.com/omnisci/omniscidb/rc/v5.3.0/$f" -o "$OMNISCI_PATH/$f"
-  fi
-done
-
+if [ ! -f "$OMNISCI_PATH/omnisci.thrift" ]; then
+  echo "$OMNISCI_PATH not found"
+  exit 1
+fi
 
 # Generate the bindings into our src folder
 if ! $THRIFT_BINARY -gen rs -recurse -out src "$OMNISCI_PATH/omnisci.thrift"; then
@@ -73,11 +62,11 @@ if ! perl -0777 -pi -e 's/use common;/use crate::common;/g' src/serialized_resul
   exit 1
 fi
 
-# Add the commit hash from OmniSciDB for tracking
-if ! sed -i "1i\/\/ Generated from OmniSciDB commit $(cd $OMNISCI_PATH; git log -n 1 --pretty=format:"%H")" src/common.rs src/completion_hints.rs src/extension_functions.rs src/omnisci.rs src/serialized_result_set.rs; then
-  echo "Failed to add commit hash comments"
-  exit 1
-fi
+# # Add the commit hash from OmniSciDB for tracking
+# if ! sed -i "1i\/\/ Generated from OmniSciDB commit $(cd $OMNISCI_PATH; git log -n 1 --pretty=format:"%H")" src/common.rs src/completion_hints.rs src/extension_functions.rs src/omnisci.rs src/serialized_result_set.rs; then
+#   echo "Failed to add commit hash comments"
+#   exit 1
+# fi
 
 if ! perl -pi -e 'chomp if eof' src/common.rs src/completion_hints.rs src/extension_functions.rs src/omnisci.rs src/serialized_result_set.rs; then
   echo "Failed to chomp newlines"

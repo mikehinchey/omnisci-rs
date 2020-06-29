@@ -1,5 +1,9 @@
 SHELL = /bin/sh
-.DEFAULT_GOAL=all
+.DEFAULT_GOAL=test
+
+OMNISCI_VERSION=v5.2.2
+
+CURRENT_UID := $(shell id -u)
 
 -include .env
 
@@ -7,10 +11,6 @@ deps:
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 	# TODO install thrift
 .PHONY: deps
-
-thrift:
-	./generate_thrift_bindings.sh
-.PHONY: thrift
 
 build:
 	cargo build
@@ -28,11 +28,23 @@ release:
 	cargo build --release
 .PHONY: release
 
-all: test
+all: get_thrift thrift test release
 .PHONY: all
 
-everything: thrift all release
-.PHONY: everything
+#
+# Thrift
+#
+
+thrift:
+	./generate_thrift_bindings.sh omniscidb
+.PHONY: thrift
+
+%.thrift:
+	mkdir -p "omniscidb/QueryEngine"
+	curl "https://raw.githubusercontent.com/omnisci/omniscidb/rc/${OMNISCI_VERSION}/$@" -o "omniscidb/$@"
+
+get_thrift: omnisci.thrift common.thrift completion_hints.thrift QueryEngine/serialized_result_set.thrift QueryEngine/extension_functions.thrift
+.PHONY: get_thrift
 
 #
 # Docker
@@ -51,4 +63,10 @@ docker_builder:
 .PHONY: docker_builder
 
 %.docker: docker_builder
-	docker run -i --rm -v ${PWD}:/src build-omnisci-rs make $*
+	# TODO avoid printing this harmless message: "mesg: ttyname failed: Inappropriate ioctl for device"
+	# --user=${CURRENT_UID}
+	docker run -i --rm \
+		-v ${PWD}:/src \
+		-v ${HOME}/.cargo/registry:/home/user/.cargo/registry \
+		build-omnisci-rs \
+		bash -l -c "make $*"

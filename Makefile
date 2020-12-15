@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 .DEFAULT_GOAL=test
 
-OMNISCI_VERSION=v5.4.1
+OMNISCI_VERSION=v5.5.0
 DB_CONTAINER = omnisci-test-db
 
 CURRENT_UID := $(shell id -u)
@@ -42,7 +42,8 @@ thrift:
 
 %.thrift:
 	mkdir -p "omniscidb/QueryEngine"
-	curl "https://raw.githubusercontent.com/omnisci/omniscidb/rc/${OMNISCI_VERSION}/$@" -o "omniscidb/$@"
+	curl "https://raw.githubusercontent.com/omnisci/omniscidb-internal/rc/${OMNISCI_VERSION}/$@" -o "omniscidb/$@"
+	# cp "${OMNISCIDB_DIR}/$@" "omniscidb/$@"
 
 get_thrift: omnisci.thrift common.thrift completion_hints.thrift QueryEngine/serialized_result_set.thrift QueryEngine/extension_functions.thrift
 .PHONY: get_thrift

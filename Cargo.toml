@@ -1,21 +1,21 @@
 [package]
 name = "omnisci"
-version = "0.1.0"
-authors = ["Jonathan Rajavuori <jrajav@gmail.com>"]
+version = "0.2.0"
+authors = ["Jonathan Rajavuori <jrajav@gmail.com>", "Mike Hinchey <mike.hinchey@omnisci.com>"]
 license = "MIT"
 edition = "2018"
 description = "A client for connecting to OmniSciDB using the Thrift API."
 keywords = ["omnisci", "mapd"]
 categories = ["api-bindings", "database"]
 documentation = "https://docs.rs/omnisci/"
-repository = "https://github.com/jrajav/omnisci-rs"
+repository = "https://github.com/mikehinchey/omnisci-rs"
 readme = "README.md"
 
 [dependencies]
 thrift = "0.13.0"
-ordered-float = "1.0.2" # Required by thrift
-try_from = "0.3.2" # Required by thrift
+ordered-float = "1" # Required by thrift
+try_from = "0.3" # Required by thrift
 regex = "1"
 
 [dev-dependencies]
-chrono = "0.4.11"
+chrono = "0.4"
